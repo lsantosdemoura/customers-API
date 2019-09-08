@@ -7,5 +7,6 @@ services:
       - .:/webapps
     command: ["./run_tests.sh"]
     environment:
-    - PYTHONWARNINGS=ignore
-    - DJANGO_SETTINGS_MODULE=customers_api.settings_test
+      - PYTHONWARNINGS=ignore
+      - DJANGO_SETTINGS_MODULE=customers_api.settings_test
+      - SECRET_KEY=test_secret_key
