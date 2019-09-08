@@ -1,0 +1,11 @@
+.git
+customers_api/staticfiles/*
+*.pyc
+*.sqlite3
+.env
+*.bak
+.gitignore
+.pytest_cache
+*.DS_Store
+.coverage
+*/__pycache__/*
