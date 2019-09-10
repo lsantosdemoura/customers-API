@@ -1,14 +1,12 @@
 import asyncio
 import json
 from collections import OrderedDict
-from urllib.request import urlopen
 
 from django.http import Http404
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from rest_framework.mixins import RetrieveModelMixin
 from aiohttp import ClientSession
 
 from core.models import Customer
@@ -33,16 +31,16 @@ class CustomerViewSet(viewsets.ViewSet):
         serializer = CustomerSerializer(customers, many=True, context={'request': request}, fields=fields)
         return Response(serializer.data)
 
-    def check_product_id(self, product_id):
-        response = urlopen(f"http://challenge-api.luizalabs.com/api/product/{product_id}")
-        if response.getcode() != 200:
-            return {"product_id": "This product does not exist."}
-        return None
-
     def create(self, request):
-        product_id_status = self.check_product_id(request.data.get('product_id'))
-        if product_id_status:
-            return Response(product_id_status, status.HTTP_400_BAD_REQUEST)
+        product_id = request.data.get('product_id')
+        if product_id:
+            product_id_status = utils.check_product_id(request.data.get('product_id'))
+            # using false to make it explicit
+            if product_id_status is False:
+                return Response(
+                    {"product_id": "This product does not exist."},
+                    status.HTTP_400_BAD_REQUEST
+                )
 
         fields = ('name', 'email', 'url')
         serializer = CustomerSerializer(data=request.data, context={'request': request}, fields=fields)
@@ -89,6 +87,20 @@ class CustomerViewSet(viewsets.ViewSet):
         all_products = [get_product_values(response) for response in self.responses]
 
         data_response = serializer_data
+        def add_url(p_id, url):
+            for product in all_products:
+                if product['id'] == p_id:
+                    product['url'] = url
+                    product['product_id'] = p_id
+                    product.move_to_end('product_id', last=False)
+
+        urls_ids = [(favorite['product_id'], favorite['url']) for favorite in data_response['favorites']]
+        for url_id in urls_ids:
+            add_url(*url_id)
+
+        for product in all_products:
+            del product['id']
+
         data_response['favorites'] = all_products
 
         return data_response
@@ -102,9 +114,14 @@ class CustomerViewSet(viewsets.ViewSet):
         return Response(data_response)
 
     def partial_update(self, request, pk, format=None):
-        product_id_status = self.check_product_id(request.data.get('product_id'))
-        if product_id_status:
-            return Response(product_id_status, status.HTTP_400_BAD_REQUEST)
+        favorites = request.data.get('favorites')
+        product_id_statuses = [utils.check_product_id(product_status.get("product_id")) for product_status in favorites]
+
+        if not any(product_id_statuses):
+            return Response(
+                {"product_id": "This product does not exist."},
+                status.HTTP_400_BAD_REQUEST
+            )
 
         fields = ('name', 'email', 'favorites')
         customer = self.get_object(pk)
@@ -129,42 +146,38 @@ class FavoriteListViewSet(viewsets.ViewSet):
     queryset = FavoriteList.objects.all()
     serializer_class = FavoriteListSerializer
 
-    # def list(self, request):
-    #     products = FavoriteList.objects.all()
-    #     serializer = FavoriteListSerializer(products, many=True, context={'request': request})
-    #     return Response(serializer.data)
-    #
-    def create(self, request):
-        response = urlopen(f"http://challenge-api.luizalabs.com/api/product/{request.data.get('product_id')}")
-        if response.getcode() != 200:
-            return Response({"product_id": "This product does not exist."})
+    def list(self, request):
+        products = FavoriteList.objects.all()
+        serializer = FavoriteListSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
 
+    def create(self, request):
+        product_id_status = utils.check_product_id(request.data.get('product_id'))
+        # using false to make it explicit
+        if product_id_status is False:
+            return Response(
+                {"product_id": "This product does not exist."},
+                status.HTTP_400_BAD_REQUEST
+            )
         serializer = FavoriteListSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #
-    # def get_object(self, pk):
-    #     try:
-    #         return FavoriteList.objects.get(pk=pk)
-    #     except FavoriteList.DoesNotExist:
-    #         raise Http404
-    #
-    # def retrieve(self, request, pk, format=None):
-    #     product = self.get_object(pk)
-    #     serializer = FavoriteListSerializer(product)
-    #     return Response(serializer.data)
-    #
-    # def partial_update(self, request, pk, format=None):
-    #     product = self.get_object(pk)
-    #     serializer = FavoriteListSerializer(product, data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response(serializer.data)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #
-    # def destroy(self, request, pk, format=None):
-    #     product = self.get_object(pk)
-    #     product.delete()
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_object(self, pk):
+        try:
+            return FavoriteList.objects.get(pk=pk)
+        except FavoriteList.DoesNotExist:
+            raise Http404
+
+    def retrieve(self, request, pk, format=None):
+        fields = ('product_id', 'customer', 'url')
+        product = self.get_object(pk)
+        serializer = FavoriteListSerializer(product, context={'request': request})
+        return Response(serializer.data)
+
+    def destroy(self, request, pk, format=None):
+        product = self.get_object(pk)
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

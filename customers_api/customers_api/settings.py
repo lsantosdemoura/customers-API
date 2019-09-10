@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
     'core',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -130,9 +131,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-
-# CELERY_BROKER_URL = 'amqp://admin:mypass@rabbit:5672/'
 
 
 REST_FRAMEWORK = {

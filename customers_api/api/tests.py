@@ -26,6 +26,3 @@ class TestCustomerViews:
             email="test2@test.com",
         )
         return customer_2
-
-    def test_get_customers(customer_1, customer_2):
-        pass

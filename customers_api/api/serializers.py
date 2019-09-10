@@ -33,20 +33,27 @@ class DynamicFieldsModelSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class FavoriteListSerializer(serializers.HyperlinkedModelSerializer):
-    # my_field = serializers.SerializerMethodField('is_named_bar')
-    #
-    # def is_named_bar(self, foo):
-    #     return foo.name == "bar"
+    customer_email = serializers.CharField(required=False, max_length=200)
+    customer = serializers.SerializerMethodField()
+
 
     class Meta:
         model = FavoriteList
-        fields = ('product_id', 'customer')
+        fields = '__all__'
 
+    def create(self, validated_data):
+        customer_email = validated_data.get('customer_email')
+        customer = Customer.objects.get(email=customer_email)
+        product_id = validated_data.get('product_id')
+        favorite = FavoriteList.objects.create(customer=customer, product_id=product_id)
+
+        return favorite
+
+    def get_customer(self, obj):
+        return obj.customer.email
 
 
 class CustomerSerializer(DynamicFieldsModelSerializer):
-    # favorites = serializers.HyperlinkedRelatedField(many=True, read_only=True, view_name='favoritelist-detail')
-
     favorites = FavoriteListSerializer(many=True, required=False)
 
     class Meta:
@@ -54,8 +61,8 @@ class CustomerSerializer(DynamicFieldsModelSerializer):
         fields = '__all__'
 
     def create(self, validated_data):
+        favorites_data = validated_data.pop('favorites', [])
         customer = Customer.objects.create(**validated_data)
-        favorites_data = validated_data.pop('favorites')
         for favorite_data in favorites_data:
             FavoriteList.objects.create(customer=customer, **favorite_data)
 
@@ -69,12 +76,6 @@ class CustomerSerializer(DynamicFieldsModelSerializer):
         for favorite_data in favorites_data:
             product_id = favorite_data.get('product_id')
             instance.favorites.get_or_create(product_id=product_id)
-            # instance.favorites.product_id = favorite_data.get('product_id')
             instance.save()
-            # favorite_list = FavoriteList.objects.filter(customer=customer, **favorite_data).exists()
-            # if favorite_list:
-            #     instance.favoritelist_set.customer = instance
-            #     FavoriteList.objects.update(customer=customer, **favorite_data)
-            # else:
-            #     FavoriteList.objects.create(customer=customer, **favorite_data)
+
         return instance
