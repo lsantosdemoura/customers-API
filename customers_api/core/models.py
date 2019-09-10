@@ -15,7 +15,7 @@ class Customer(models.Model):
 
 
 class FavoriteList(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, related_name='favorites', on_delete=models.CASCADE)
     product_id = models.CharField(max_length=200)
 
     def __str__(self):

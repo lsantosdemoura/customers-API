@@ -1,5 +1,4 @@
 import pytest
-from django.core.exceptions import ValidationError
 
 from core.models import Customer
 from core.models import FavoriteList
