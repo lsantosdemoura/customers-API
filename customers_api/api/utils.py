@@ -1,11 +1,13 @@
 import asyncio
 from functools import wraps
+from urllib.request import urlopen
 
 from aiohttp import ClientResponseError
 
 
 def retry(*exceptions, retries=3, cooldown=1, verbose=True):
-    """Decorate an async function to execute it a few times before giving up.
+    """
+    Decorate an async function to execute it a few times before giving up.
     Hopes that problem is resolved by another side shortly.
 
     Args:
@@ -25,17 +27,10 @@ def retry(*exceptions, retries=3, cooldown=1, verbose=True):
                     result = await func(*args, **kwargs)
                 except exceptions as err:
                     retries_count += 1
-                    # message = "Exception during {} execution. " \
-                    #           "{} of {} retries attempted".
-                    #           format(func, retries_count, retries)
 
                     if retries_count > retries:
-                        # verbose and log.exception(message)
                         raise RetryExhaustedError(
                             func.__qualname__, args, kwargs) from err
-                    else:
-                        # verbose and log.warning(message)
-                        pass
 
                     if cooldown:
                         await asyncio.sleep(cooldown)
@@ -49,3 +44,10 @@ def retry(*exceptions, retries=3, cooldown=1, verbose=True):
 async def fetch(url, session):
     async with session.get(url, raise_for_status=True) as response:
         return await response.read()
+
+
+def check_product_id(product_id):
+    response = urlopen(f"http://challenge-api.luizalabs.com/api/product/{product_id}")
+    if response.getcode() == 200:
+        return True
+    return False

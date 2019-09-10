@@ -10,15 +10,6 @@ services:
     ports:
       - "5432:5432"
 
-  # rabbit:
-  #   hostname: rabbit
-  #   image: rabbitmq:3.7.17
-  #   environment:
-  #     - RABBITMQ_DEFAULT_USER=admin
-  #     - RABBITMQ_DEFAULT_PASS=mypass
-  #   ports:
-  #     - "5672:5672"
-
   web:
     build: .
     command: ["./run_web.sh"]
@@ -28,20 +19,5 @@ services:
       - "8000:8000"
     links:
       - db
-      # - rabbit
     depends_on:
       - db
-
-  # celery:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: ["./run_celery.sh"]
-  #   volumes:
-  #     - .:/webapps
-  #   links:
-  #     - db
-  #     - rabbit
-  #   depends_on:
-  #     - db
-  #     - rabbit
