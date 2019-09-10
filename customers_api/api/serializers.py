@@ -36,7 +36,6 @@ class FavoriteListSerializer(serializers.HyperlinkedModelSerializer):
     customer_email = serializers.CharField(required=False, max_length=200)
     customer = serializers.SerializerMethodField()
 
-
     class Meta:
         model = FavoriteList
         fields = '__all__'
@@ -45,7 +44,7 @@ class FavoriteListSerializer(serializers.HyperlinkedModelSerializer):
         customer_email = validated_data.get('customer_email')
         customer = Customer.objects.get(email=customer_email)
         product_id = validated_data.get('product_id')
-        favorite = FavoriteList.objects.create(customer=customer, product_id=product_id)
+        favorite = FavoriteList.objects.get_or_create(customer=customer, product_id=product_id)
 
         return favorite
 
