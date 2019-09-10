@@ -44,6 +44,7 @@ class FavoriteListSerializer(serializers.HyperlinkedModelSerializer):
         customer_email = validated_data.get('customer_email')
         customer = Customer.objects.get(email=customer_email)
         product_id = validated_data.get('product_id')
+        # get or create for avoid repeating a product in list
         favorite = FavoriteList.objects.get_or_create(customer=customer, product_id=product_id)
 
         return favorite

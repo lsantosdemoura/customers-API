@@ -56,9 +56,11 @@ class CustomerViewSet(viewsets.ViewSet):
             raise Http404
 
     def get_data_response(self, serializer_data):
+        """Method that returns the serialized data that will be returned by the API."""
         all_product_ids = [p_id["product_id"] for p_id in serializer_data.get("favorites")]
 
         async def run(product_ids):
+            """Function that create and the run asynchronous tasks."""
             url = "http://challenge-api.luizalabs.com/api/product/{}"
             tasks = []
 
@@ -79,6 +81,7 @@ class CustomerViewSet(viewsets.ViewSet):
         needed_fields = ('id', 'title', 'image', 'price', 'reviewScore')
 
         def get_product_values(response):
+            """Function that returns the fields that matters."""
             json_response = json.loads(response)
             product_fields = OrderedDict([(field, json_response.get(field)) for field in needed_fields])
 
@@ -86,8 +89,10 @@ class CustomerViewSet(viewsets.ViewSet):
 
         all_products = [get_product_values(response) for response in self.responses]
 
+        # Iteration through the products returned to insert the API url into the json
         data_response = serializer_data
         def add_url(p_id, url):
+            """Function that adds the url and the product_id to the response dictionary."""
             for product in all_products:
                 if product['id'] == p_id:
                     product['url'] = url
@@ -98,9 +103,11 @@ class CustomerViewSet(viewsets.ViewSet):
         for url_id in urls_ids:
             add_url(*url_id)
 
+        # Removing 'id' to make more sense because I am using the id as product_id
         for product in all_products:
             del product['id']
 
+        # Replacing favorites list to the return of the API
         data_response['favorites'] = all_products
 
         return data_response
@@ -125,7 +132,12 @@ class CustomerViewSet(viewsets.ViewSet):
 
         fields = ('name', 'email', 'favorites')
         customer = self.get_object(pk)
-        serializer = CustomerSerializer(customer, data=request.data, context={'request': request}, fields=fields)
+        serializer = CustomerSerializer(
+            customer,
+            data=request.data,
+            context={'request': request},
+            fields=fields
+        )
         if serializer.is_valid():
             serializer.save()
             data_response = self.get_data_response(serializer_data=serializer.data)
@@ -148,7 +160,11 @@ class FavoriteListViewSet(viewsets.ViewSet):
 
     def list(self, request):
         products = FavoriteList.objects.all()
-        serializer = FavoriteListSerializer(products, many=True, context={'request': request})
+        serializer = FavoriteListSerializer(
+            products,
+            many=True,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
     def create(self, request):
@@ -159,7 +175,10 @@ class FavoriteListViewSet(viewsets.ViewSet):
                 {"product_id": "This product does not exist."},
                 status.HTTP_400_BAD_REQUEST
             )
-        serializer = FavoriteListSerializer(data=request.data, context={'request': request})
+        serializer = FavoriteListSerializer(
+            data=request.data,
+            context={'request': request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -174,7 +193,10 @@ class FavoriteListViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk, format=None):
         fields = ('product_id', 'customer', 'url')
         product = self.get_object(pk)
-        serializer = FavoriteListSerializer(product, context={'request': request})
+        serializer = FavoriteListSerializer(
+            product,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
     def destroy(self, request, pk, format=None):

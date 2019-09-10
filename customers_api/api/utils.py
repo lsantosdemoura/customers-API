@@ -42,11 +42,13 @@ def retry(*exceptions, retries=3, cooldown=1, verbose=True):
 
 @retry(ClientResponseError)
 async def fetch(url, session):
+    """Asynchronous function to make a request in the API."""
     async with session.get(url, raise_for_status=True) as response:
         return await response.read()
 
 
 def check_product_id(product_id):
+    """Function that checks if a product id exists."""
     response = urlopen(f"http://challenge-api.luizalabs.com/api/product/{product_id}")
     if response.getcode() == 200:
         return True
